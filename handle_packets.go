@@ -39,12 +39,18 @@ func handle_request(buffer []byte,Caddr *net.UDPAddr,Conn *net.UDPConn){
         fmt.Println("Question",i+1,":",string(it.Name))
 
         req_id := DNSpacketObj.ID; //Used by All DNS systems to ensure authenticity
-        var response *dns.Msg;
+        var response = new(dns.Msg);
         if EntryExists(string(it.Name)){
-            response = ReturnWithAnswers(string(it.Name))
+            response.MsgHdr.Response = true;
+            response.MsgHdr.Rcode = 0; //No error handling :(
+            response.MsgHdr.RecursionDesired = true;
+            l := new(dns.Msg)
+            l.Unpack(buffer)
+            response.Question = l.Question;
+            ReturnWithAnswers(string(it.Name),response)
 
         }else{
-           response = resolve(string(it.Name),buffer)
+           response = resolve(string(it.Name))
         }
         
 
@@ -60,7 +66,7 @@ func handle_request(buffer []byte,Caddr *net.UDPAddr,Conn *net.UDPConn){
 }
 
 
-func resolve(Name string, request_buff []byte) *dns.Msg{
+func resolve(Name string) *dns.Msg{
     //First check in redis server 
 
     //if not found resolve using 8.8.8.8/1.1.1.1 (for now)
@@ -116,6 +122,9 @@ func response_handlers(res *dns.Msg){
         fmt.Print(res_struct.Typ," ")
         fmt.Print(res_struct.Class," ")
         fmt.Print(res_struct.Ttl," ")
+        if res_struct.Typ == "CNAME"{
+            resolve(res_struct.Reply)
+        }
         fmt.Println(res_struct.Reply)
         res_struct.Rawname = it.Header().Name
         res_struct.Rawclass = it.Header().Class

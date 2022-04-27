@@ -5,8 +5,28 @@ import (
     "github.com/miekg/dns"
     "github.com/gomodule/redigo/redis"
 )
-
+func newPool() *redis.Pool {
+    return &redis.Pool{
+        // Maximum number of idle connections in the pool.
+        MaxIdle: 800,
+        // max number of connections
+        MaxActive: 12000,
+        // Dial is an application supplied function for creating and
+        // configuring a connection.
+        Dial: func() (redis.Conn, error) {
+            c, err := redis.Dial("tcp", ":6379")
+            if err != nil {
+                panic(err.Error())
+            }
+            return c, err
+        },
+    }
+}
 func FlushToDB(Record ResponseStruct) bool {
+
+    var pool = newPool()
+    var c = pool.Get()
+
     _,err := c.Do("HSET", record_number,"name", Record.Name, "ttl",Record.Rawttl, "class", Record.Rawclass, "type", Record.Rawrrtype, "reply", Record.Rawstr,"length",Record.Rawrdlength)
     if err != nil {
         checkError(err)
@@ -28,13 +48,14 @@ func EntryExists(domain string)bool{
     }
 }
 
+func ReturnWithAnswers(domain string,res *dns.Msg){
 
-func ReturnWithAnswers(domain string)*dns.Msg{
+    fmt.Println("Resolving from Cache!",domain)
+    var pool = newPool()
+    var c = pool.Get()
+    defer c.Close()
+
     mod_dom := domain+"."
-    fmt.Println("Resolving from Cache!")
-    var res = new(dns.Msg)
-    res.MsgHdr.Response = true;
-    res.MsgHdr.Rcode = 0; //No error handling :(
     for _,record_number := range domain_map[mod_dom]{
         raw_str,err :=  redis.String(c.Do("HGET",record_number,"reply"))
         checkError(err)
@@ -42,6 +63,12 @@ func ReturnWithAnswers(domain string)*dns.Msg{
         checkError(err)
         fmt.Println(a)
         res.Answer = append(res.Answer,a)
+        /*
+         *if get_fields_whitespace(raw_str).Typ == "CNAME"{
+         *    ReturnWithAnswers(get_fields_whitespace(raw_str).Reply[:len(get_fields_whitespace(raw_str).Reply)-1],res)
+         *    break
+         *}
+         */
     }
-    return res
+    return
 }
