@@ -9,15 +9,26 @@ import (
 );
 
 func serverstart(Conn *net.UDPConn){
+    //Load balanced thread pool allocater
+    for i:=0 ;i<int( system.FreeThreads-1 );i++{ //-1 cus one thread taken up by this function
+        go request_handle_thread(thread_channels[i]) //spwanning threads
+        system.FreeThreads = system.FreeThreads - 1;
+    }
+    fmt.Println("Threads spwaned!")
     for{
         buffer := make([]byte,10000)
-        no_bits,CAddr,err := Conn.ReadFromUDP(buffer)
+        _,CAddr,err := Conn.ReadFromUDP(buffer)
         checkError(err)
         fmt.Println("Connection from : ",CAddr)
-        fmt.Println("Size of Recieved packet : ",no_bits)
+        new_job := Job{
+            buffer : buffer,
+            Conn : Conn,
+            Caddr : CAddr,
+        }
+        var min_buffer = ; //Commit continue
+
         go handle_request(buffer,CAddr,Conn);
     }
-
 }
 
 func checkError(err error){
@@ -27,18 +38,18 @@ func checkError(err error){
 }
 
 func handle_request(buffer []byte,Caddr *net.UDPAddr,Conn *net.UDPConn){
+
+    //Fetching DNS layers and parsing to object
     packetlayers := gopacket.NewPacket(buffer,layers.LayerTypeDNS,gopacket.Default) 
-    //Above gives a set of layer of the packet revieved
-    //Where the DNS layer is filled with our Recieved bits
     DNSlayer := packetlayers.Layer(layers.LayerTypeDNS)
-    //Above only extracts the DNS layer from set of layers 
-    //with above layer we can create an object :) 
     DNSpacketObj := DNSlayer.(*layers.DNS)
+
+    //Debug prints
     fmt.Println("Questions Recieved : ")
     for i,it:=range DNSpacketObj.Questions{
-        fmt.Println("Question",i+1,":",string(it.Name))
+        fmt.Println("\t Question",i+1,":",string(it.Name))
 
-        req_id := DNSpacketObj.ID; //Used by All DNS systems to ensure authenticity
+    req_id := DNSpacketObj.ID; //Used by All DNS systems to ensure authenticity
         var response = new(dns.Msg);
         if EntryExists(string(it.Name)){
             response.MsgHdr.Response = true;
