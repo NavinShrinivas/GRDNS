@@ -1,0 +1,26 @@
+package main
+
+import (
+    "fmt"
+    "net"
+    "os"
+    "encoding/json"
+);
+
+
+func main(){
+
+    //Get number of threads for thread pool, have to parse JSON 
+    dat, err := os.ReadFile("/tmp/dat")
+    checkError(err)
+    record_number = 0;
+    Conn,err:= net.ListenUDP("udp",&addr)
+    if err!=nil{
+        fmt.Println("Error listening to port : ",err);
+    }else{
+        fmt.Println("Listening to port 53");
+    }
+    wg.Add(1)
+    serverstart(Conn)
+    wg.Wait()
+}
