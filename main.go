@@ -28,6 +28,11 @@ func main(){
         fmt.Println("Listening to port 53");
     }
 
+    //Making those channels buffered 
+    for i:=0;i<int(system.FreeThreads);i++{
+        thread_channels[i] = make(chan Job,10000); //No more than 10000 jobs can be buffered at a time
+    }
+
     wg.Add(1)
     system.FreeThreads = system.FreeThreads - 1;
     serverstart(Conn) //One of the threads is given to Load balanced thread pool allocater

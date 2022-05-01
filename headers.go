@@ -5,6 +5,7 @@ package main
 import(
     "net"
     "sync"
+    "fmt"
 )
 
 
@@ -48,5 +49,12 @@ type Job struct{
 }
 
 var thread_channels [1024]chan Job //Cant have more than 1024 thread
+
+func checkError(err error){
+    if err!=nil{
+        fmt.Println("Something went wrong : ",err)
+    }
+}
+
 
 
