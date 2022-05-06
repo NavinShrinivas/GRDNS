@@ -9,7 +9,7 @@ import(
 )
 
 
-var record_number uint64; //Very very bad idea, will definetly break down the line! 
+var record_number int64; //Very very bad idea, will definetly break down the line! 
 //But I cant see any other way of tracking mutiple records for the same domain.
 //On the other hand, we dont even have that many ip addresses (atleast not in the ip4 space)
 

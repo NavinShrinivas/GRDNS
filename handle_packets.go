@@ -37,6 +37,7 @@ func serverstart(Conn *net.UDPConn){
                 min_buffer = i;
             }
         }
+        fmt.Println("Job given to thread",min_buffer)
         thread_channels[min_buffer]<-new_job;
         go handle_request(buffer,CAddr,Conn);
     }
@@ -44,44 +45,45 @@ func serverstart(Conn *net.UDPConn){
 
 func request_handle_thread(job chan Job){
 
-    packet_buff := job.buffer;
-    UDPConn := job.Conn;
-    UDPCaddr := job.Caddr;
+    for{
+        new_job := <- job
+        packet_buff := new_job.buffer;
+        UDPConn := new_job.Conn;
+        UDPCaddr := new_job.Caddr;
+        //Fetching DNS layers and parsing to object, Can be converted to handle with dns package later 
+        packetlayers := gopacket.NewPacket(packet_buff,layers.LayerTypeDNS,gopacket.Default) 
+        DNSlayer := packetlayers.Layer(layers.LayerTypeDNS)
+        DNSpacketObj := DNSlayer.(*layers.DNS)
+
+        //Debug prints
+        fmt.Println("Questions Recieved : ")
+        for i,it:=range DNSpacketObj.Questions{
+            fmt.Println("\t Question",i+1,":",string(it.Name))
+
+            req_id := DNSpacketObj.ID; //Used by All DNS systems to ensure authenticity
+            var response = new(dns.Msg);
+            if EntryExists(string(it.Name)){
+                response.MsgHdr.Response = true;
+                response.MsgHdr.Rcode = 0; //No error handling :(
+                response.MsgHdr.RecursionDesired = true;
+                l := new(dns.Msg)
+                l.Unpack(packet_buff)
+                response.Question = l.Question;
+                ReturnWithAnswers(string(it.Name),response)
+
+            }else{
+                response = resolve(string(it.Name))
+            }
 
 
-    //Fetching DNS layers and parsing to object, Can be converted to handle with dns package later 
-    packetlayers := gopacket.NewPacket(packet_buff,layers.LayerTypeDNS,gopacket.Default) 
-    DNSlayer := packetlayers.Layer(layers.LayerTypeDNS)
-    DNSpacketObj := DNSlayer.(*layers.DNS)
+            if response!=nil{         
+                response.MsgHdr.Id = req_id;
+                resbuf,_ := response.Pack()
 
-    //Debug prints
-    fmt.Println("Questions Recieved : ")
-    for i,it:=range DNSpacketObj.Questions{
-        fmt.Println("\t Question",i+1,":",string(it.Name))
-
-        req_id := DNSpacketObj.ID; //Used by All DNS systems to ensure authenticity
-        var response = new(dns.Msg);
-        if EntryExists(string(it.Name)){
-            response.MsgHdr.Response = true;
-            response.MsgHdr.Rcode = 0; //No error handling :(
-            response.MsgHdr.RecursionDesired = true;
-            l := new(dns.Msg)
-            l.Unpack(buffer)
-            response.Question = l.Question;
-            ReturnWithAnswers(string(it.Name),response)
-
-        }else{
-            response = resolve(string(it.Name))
-        }
-
-
-        if response!=nil{         
-            response.MsgHdr.Id = req_id;
-            resbuf,_ := response.Pack()
-
-            //Writing back to client
-            _, err := Conn.WriteToUDP(resbuf, Caddr)
-            checkError(err)
+                //Writing back to client
+                _, err := UDPConn.WriteToUDP(resbuf, UDPCaddr)
+                checkError(err)
+            }
         }
     }
 }
