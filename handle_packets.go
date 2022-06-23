@@ -39,7 +39,6 @@ func serverstart(Conn *net.UDPConn){
         }
         fmt.Println("Job given to thread",min_buffer)
         thread_channels[min_buffer]<-new_job;
-        go handle_request(buffer,CAddr,Conn);
     }
 }
 
@@ -88,51 +87,6 @@ func request_handle_thread(job chan Job){
     }
 }
 
-
-
-
-
-
-
-
-func handle_request(buffer []byte,Caddr *net.UDPAddr,Conn *net.UDPConn){
-
-    //Fetching DNS layers and parsing to object
-    packetlayers := gopacket.NewPacket(buffer,layers.LayerTypeDNS,gopacket.Default) 
-    DNSlayer := packetlayers.Layer(layers.LayerTypeDNS)
-    DNSpacketObj := DNSlayer.(*layers.DNS)
-
-    //Debug prints
-    fmt.Println("Questions Recieved : ")
-    for i,it:=range DNSpacketObj.Questions{
-        fmt.Println("\t Question",i+1,":",string(it.Name))
-
-        req_id := DNSpacketObj.ID; //Used by All DNS systems to ensure authenticity
-        var response = new(dns.Msg);
-        if EntryExists(string(it.Name)){
-            response.MsgHdr.Response = true;
-            response.MsgHdr.Rcode = 0; //No error handling :(
-            response.MsgHdr.RecursionDesired = true;
-            l := new(dns.Msg)
-            l.Unpack(buffer)
-            response.Question = l.Question;
-            ReturnWithAnswers(string(it.Name),response)
-
-        }else{
-            response = resolve(string(it.Name))
-        }
-
-
-        if response!=nil{         
-            response.MsgHdr.Id = req_id;
-            resbuf,_ := response.Pack()
-
-            //Writing back to client
-            _, err := Conn.WriteToUDP(resbuf, Caddr)
-            checkError(err)
-        }
-    }
-}
 
 
 func resolve(Name string) *dns.Msg{

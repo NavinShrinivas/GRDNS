@@ -18,6 +18,12 @@ func main(){
 
     if system.FreeThreads > 1024{
         fmt.Println("Thats one monster of a system you got there, sadly our software has constrains..mind getting your engineering team on this?")
+        return
+    }
+
+    if system.FreeThreads <= 2 {
+        fmt.Println("Atleast 3 threads are needed to be spawned to get this program working.")
+        return
     }
 
     record_number = 0;
