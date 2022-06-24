@@ -63,12 +63,6 @@ func ReturnWithAnswers(domain string,res *dns.Msg){
         checkError(err)
         fmt.Println(a)
         res.Answer = append(res.Answer,a)
-        /*
-         *if get_fields_whitespace(raw_str).Typ == "CNAME"{
-         *    ReturnWithAnswers(get_fields_whitespace(raw_str).Reply[:len(get_fields_whitespace(raw_str).Reply)-1],res)
-         *    break
-         *}
-         */
     }
     return
 }

@@ -100,9 +100,9 @@ func resolve(Name string) *dns.Msg{
     checkError(err)
     if in!=nil{
         //Without this we get nil dereference errors
+        fmt.Println(in)
         response_handlers(in)
         return in
-        fmt.Println()
     }
     return nil
 }
@@ -146,7 +146,9 @@ func response_handlers(res *dns.Msg){
         fmt.Print(res_struct.Class," ")
         fmt.Print(res_struct.Ttl," ")
         if res_struct.Typ == "CNAME"{
-            resolve(res_struct.Reply)
+            new_record := resolve(res_struct.Reply)
+            res.Answer = append(res.Answer,new_record.Answer...)
+
         }
         fmt.Println(res_struct.Reply)
         res_struct.Rawname = it.Header().Name
