@@ -56,12 +56,25 @@ func ReturnWithAnswers(domain string,res *dns.Msg){
     defer c.Close()
 
     mod_dom := domain+"."
-    for _,record_number := range domain_map[mod_dom]{
+    for i:=0;i<len(domain_map[mod_dom]);i++{
+        record_number := domain_map[mod_dom][i]
+        fmt.Println("debugg :",record_number)
         raw_str,err :=  redis.String(c.Do("HGET",record_number,"reply"))
         checkError(err)
         a,err := dns.NewRR(raw_str)
         checkError(err)
         fmt.Println(a)
+        fmt.Println("Debugg : ", a.Header().Rrtype);
+        if a.Header().Rrtype == 5{
+            //Meaning its reply is CNAME record
+            //Need to fetch details for CNAME record now
+            //Need to refactor later : 
+            response_struct := get_fields_whitespace(raw_str);
+            cname_response_domain := response_struct.Reply
+            fmt.Println("CNAME RECORD detected : ",cname_response_domain,domain_map[cname_response_domain]);
+            domain_map[mod_dom] = append(domain_map[mod_dom],domain_map[cname_response_domain]...)
+
+        }
         res.Answer = append(res.Answer,a)
     }
     return
