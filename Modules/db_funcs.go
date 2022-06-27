@@ -1,4 +1,4 @@
-package main
+package Modules
 
 import (
     "fmt"
@@ -27,13 +27,13 @@ func FlushToDB(Record ResponseStruct) bool {
     var pool = newPool()
     var c = pool.Get()
 
-    _,err := c.Do("HSET", record_number,"name", Record.Name, "ttl",Record.Rawttl, "class", Record.Rawclass, "type", Record.Rawrrtype, "reply", Record.Rawstr,"length",Record.Rawrdlength)
+    _,err := c.Do("HSET", Record_number,"name", Record.Name, "ttl",Record.Rawttl, "class", Record.Rawclass, "type", Record.Rawrrtype, "reply", Record.Rawstr,"length",Record.Rawrdlength)
     if err != nil {
-        checkError(err)
+        CheckError(err)
         return false
     }
-    domain_map[Record.Name] = append(domain_map[Record.Name],record_number)
-    record_number++;
+    domain_map[Record.Name] = append(domain_map[Record.Name],Record_number)
+    Record_number++;
     fmt.Println("Record inserted to Database!")
     return true
 }
@@ -56,24 +56,19 @@ func ReturnWithAnswers(domain string,res *dns.Msg){
     defer c.Close()
 
     mod_dom := domain+"."
-    for i:=0;i<len(domain_map[mod_dom]);i++{
+    for i:=0;i<len(domain_map[mod_dom]);i++{ //Should not be converted to iterrator based loops
         record_number := domain_map[mod_dom][i]
-        fmt.Println("debugg :",record_number)
         raw_str,err :=  redis.String(c.Do("HGET",record_number,"reply"))
-        checkError(err)
+        CheckError(err)
         a,err := dns.NewRR(raw_str)
-        checkError(err)
-        fmt.Println(a)
-        fmt.Println("Debugg : ", a.Header().Rrtype);
+        CheckError(err)
         if a.Header().Rrtype == 5{
             //Meaning its reply is CNAME record
             //Need to fetch details for CNAME record now
             //Need to refactor later : 
             response_struct := get_fields_whitespace(raw_str);
             cname_response_domain := response_struct.Reply
-            fmt.Println("CNAME RECORD detected : ",cname_response_domain,domain_map[cname_response_domain]);
             domain_map[mod_dom] = append(domain_map[mod_dom],domain_map[cname_response_domain]...)
-
         }
         res.Answer = append(res.Answer,a)
     }

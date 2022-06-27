@@ -1,4 +1,4 @@
-package main 
+package Modules
 
 import(
     "strings"

@@ -1,4 +1,4 @@
-package main
+package Modules
 
 import (
     "fmt"
@@ -8,21 +8,21 @@ import (
     "github.com/miekg/dns"
 );
 
-func serverstart(Conn *net.UDPConn){
+func Serverstart(Conn *net.UDPConn){
     //Load balanced thread pool allocater
 
     //The way this fucntion is designed saves time and resources spawing thread everytime!.
     //Although it does lead to some dropped packets but thats and extreme
 
-    for i:=0 ;i<int( system.FreeThreads-1 );i++{ //-1 cus one thread taken up by this function
-        go request_handle_thread(thread_channels[i]) //spwanning threads
-        system.FreeThreads = system.FreeThreads - 1;
+    for i:=0 ;i<int( System_State.FreeThreads-1 );i++{ //-1 cus one thread taken up by this function
+        go request_handle_thread(Thread_channels[i]) //spwanning threads
+        System_State.FreeThreads = System_State.FreeThreads - 1;
     }
     fmt.Println("Threads spwaned!")
     for{
         buffer := make([]byte,10000)
         _,CAddr,err := Conn.ReadFromUDP(buffer)
-        checkError(err)
+        CheckError(err)
         fmt.Println("Connection from : ",CAddr)
         new_job := Job{
             buffer : buffer,
@@ -30,15 +30,15 @@ func serverstart(Conn *net.UDPConn){
             Caddr : CAddr,
         }
         var min_buffer = 0;
-        var min_buffer_len = len(thread_channels[0]);
-        for i:=0;i<int(system.FreeThreads-1);i++{
-            if(len(thread_channels[i]) < min_buffer_len){
-                min_buffer_len = len(thread_channels[i]);
+        var min_buffer_len = len(Thread_channels[0]);
+        for i:=0;i<int(System_State.FreeThreads-1);i++{
+            if(len(Thread_channels[i]) < min_buffer_len){
+                min_buffer_len = len(Thread_channels[i]);
                 min_buffer = i;
             }
         }
         fmt.Println("Job given to thread",min_buffer)
-        thread_channels[min_buffer]<-new_job;
+        Thread_channels[min_buffer]<-new_job;
     }
 }
 
@@ -54,12 +54,11 @@ func request_handle_thread(job chan Job){
         DNSlayer := packetlayers.Layer(layers.LayerTypeDNS)
         DNSpacketObj := DNSlayer.(*layers.DNS)
 
-        //Debug prints
         fmt.Println("Questions Recieved : ")
         for i,it:=range DNSpacketObj.Questions{
             fmt.Println("\t Question",i+1,":",string(it.Name))
 
-            req_id := DNSpacketObj.ID; //Used by All DNS systems to ensure authenticity
+            req_id := DNSpacketObj.ID; //Used by All DNS System_States to ensure authenticity
             var response = new(dns.Msg);
             if EntryExists(string(it.Name)){
                 response.MsgHdr.Response = true;
@@ -81,7 +80,7 @@ func request_handle_thread(job chan Job){
 
                 //Writing back to client
                 _, err := UDPConn.WriteToUDP(resbuf, UDPCaddr)
-                checkError(err)
+                CheckError(err)
             }
         }
     }
@@ -97,10 +96,9 @@ func resolve(Name string) *dns.Msg{
     msg := new(dns.Msg)
     msg.SetQuestion(dns.Fqdn(Name),dns.TypeA) //FQDN : fully qualified Domain name
     in, err := dns.Exchange(msg, "1.1.1.1:53")
-    checkError(err)
+    CheckError(err)
     if in!=nil{
         //Without this we get nil dereference errors
-        fmt.Println(in)
         response_handlers(in)
         return in
     }
@@ -109,48 +107,23 @@ func resolve(Name string) *dns.Msg{
 
 
 func response_handlers(res *dns.Msg){
-    //gets the possible fields and also pushed to database
-    //Note sure if all DNS server do this, but we are caching A, CNAME, NS 
-    //But will be returning only CNAME and A type 
-    //Why so you ask? Well we have here a recursive DNS looker, meaning if it doesnt have 
-    //The needed domain in cache it is gonna go looking for it, meaning we will be reaching 
-    //Thso authoritative nameserver time and again.
-    //Fetching authoritative records :
-    fmt.Println("New Auth records : ")
-    for count,it := range res.Ns{
+
+    //Fetching answer records [MOST IMP] : 
+    for i:=0;i<len(res.Answer);i++{
+        it := res.Answer[i]
         res_struct := get_fields_whitespace(it.String())
-        fmt.Println("Record : ",count+1)
         fmt.Print(res_struct.Name," ")
         fmt.Print(res_struct.Typ," ")
         fmt.Print(res_struct.Class," ")
         fmt.Print(res_struct.Ttl," ")
         fmt.Println(res_struct.Reply)
-        res_struct.Rawname = it.Header().Name
-        res_struct.Rawclass = it.Header().Class
-        res_struct.Rawrdlength = it.Header().Rdlength
-        res_struct.Rawstr = it.String()
-        res_struct.Rawrrtype = it.Header().Rrtype
-        res_struct.Rawttl = it.Header().Ttl 
-        res := FlushToDB(res_struct)
-        if res==false{
-            fmt.Println("Something wrong with redis server!")
-        }
-    }
-    //Fetching answer records [MOST IMP] : 
-    fmt.Println("New Answer records : " )
-    for count,it := range res.Answer{
-        res_struct := get_fields_whitespace(it.String())
-        fmt.Println("Record : ",count+1)
-        fmt.Print(res_struct.Name," ")
-        fmt.Print(res_struct.Typ," ")
-        fmt.Print(res_struct.Class," ")
-        fmt.Print(res_struct.Ttl," ")
         if res_struct.Typ == "CNAME"{
             new_record := resolve(res_struct.Reply)
             res.Answer = append(res.Answer,new_record.Answer...)
 
         }
-        fmt.Println(res_struct.Reply)
+
+        //Preparing to flus to db
         res_struct.Rawname = it.Header().Name
         res_struct.Rawclass = it.Header().Class
         res_struct.Rawrdlength = it.Header().Rdlength
