@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+    "GRDNS/Modules"
 );
 
 
@@ -12,22 +13,22 @@ func main(){
 
     //Get number of threads for thread pool, have to parse JSON 
     dat, err := os.ReadFile("./system.conf")
-    checkError(err)
-    json.Unmarshal(dat,&system)
-    fmt.Print("Recieved from conf file :\n",string(dat),"\n",system)
+    Modules.CheckError(err)
+    json.Unmarshal(dat,&Modules.System_State)
+    fmt.Print("Recieved from conf file :\n",string(dat),"\n",Modules.System_State)
 
-    if system.FreeThreads > 1024{
-        fmt.Println("Thats one monster of a system you got there, sadly our software has constrains..mind getting your engineering team on this?")
+    if Modules.System_State.FreeThreads > 1024{
+        fmt.Println("Thats one monster of a Modules.System_State you got there, sadly our software has constrains..mind getting your engineering team on this?")
         return
     }
 
-    if system.FreeThreads <= 2 {
+    if Modules.System_State.FreeThreads <= 2 {
         fmt.Println("Atleast 3 threads are needed to be spawned to get this program working.")
         return
     }
 
-    record_number = 0;
-    Conn,err:= net.ListenUDP("udp",&addr)
+    Modules.Record_number = 0;
+    Conn,err:= net.ListenUDP("udp",&Modules.Addr)
     if err!=nil{
         fmt.Println("Error listening to port : ",err);
     }else{
@@ -35,13 +36,13 @@ func main(){
     }
 
     //Making those channels buffered 
-    for i:=0;i<int(system.FreeThreads);i++{
-        thread_channels[i] = make(chan Job,10000); //No more than 10000 jobs can be buffered at a time
+    for i:=0;i<int(Modules.System_State.FreeThreads);i++{
+        Modules.Thread_channels[i] = make(chan Modules.Job,10000); //No more than 10000 jobs can be buffered at a time
     }
 
-    wg.Add(1)
-    system.FreeThreads = system.FreeThreads - 1;
-    serverstart(Conn) //One of the threads is given to Load balanced thread pool allocater
-    wg.Wait()
+    Modules.Work_Group.Add(1)
+    Modules.System_State.FreeThreads = Modules.System_State.FreeThreads - 1;
+    Modules.Serverstart(Conn) //One of the threads is given to Load balanced thread pool allocater
+    Modules.Work_Group.Wait()
     fmt.Println()
 }
