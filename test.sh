@@ -9,7 +9,7 @@ if [ "$1" = "--10mtest" ];then
             exit
         fi
     else
-        unxz 10m_query10.xz
+        unxz -k 10m_query10.xz
         dnsperf -d 10m_query10 -s 0.0.0.0
         if [ $? -ne "0" ];then
             echo "please install dnsperf to run this script"
