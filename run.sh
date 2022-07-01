@@ -38,3 +38,6 @@ else
     chmod +x GRDNS
     sudo ./GRDNS
 fi
+
+
+
