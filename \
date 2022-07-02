@@ -29,12 +29,12 @@ func FlushToDB(Record ResponseStruct) bool {
     defer c.Close()
     defer pool.Close()
 
-    _,err := c.Do("HSET", Record_number,"name", Record.Name, "ttl",Record.Rawttl, "class", Record.Rawclass, "type", Record.Rawrrtype, "reply", Record.Rawstr,"length",Record.Rawrdlength) //Record number acts as the key in db
+    _,err := c.Do("HSET", Record_number,"name", Record.Name, "ttl",Record.Rawttl, "class", Record.Rawclass, "type", Record.Rawrrtype, "reply", Record.Rawstr,"length",Record.Rawrdlength)
     if err != nil {
         CheckError(err)
         return false
     }
-    domain_map[Record.Name] = append(domain_map[Record.Name],Record_number) //Inserting rescord number to memory map, key is the domain question
+    domain_map[Record.Name] = append(domain_map[Record.Name],Record_number) //Inserting rescord numebr to memory map
     Record_number++;
     fmt.Println("Record inserted to Database!")
     return true
@@ -43,7 +43,7 @@ func FlushToDB(Record ResponseStruct) bool {
 
 func EntryExists(domain string)bool{
     mod_dom := domain+"."
-    if len(domain_map[mod_dom]) == 0{ //Checking map if there is any record numbers the memory map where the name is the key
+    if len(domain_map[mod_dom]) == 0{
         return false 
     }else{
         return true

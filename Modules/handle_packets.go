@@ -14,8 +14,8 @@ func Serverstart(Conn *net.UDPConn){
     //The way this fucntion is designed saves time and resources spawing thread everytime!.
     //Although it does lead to some dropped packets but thats and extreme
 
-    for i:=0 ;i<int( System_State.FreeThreads-1 );i++{ //-1 cus one thread taken up by this function
-        go request_handle_thread(Thread_channels[i]) //spwanning threads
+    for i:=0 ;i<int( System_State.FreeThreads );i++{
+        go request_handle_thread(Thread_channels[i]) //spawnning threads
         System_State.FreeThreads = System_State.FreeThreads - 1;
     }
     fmt.Println("Threads spwaned!")
@@ -24,14 +24,14 @@ func Serverstart(Conn *net.UDPConn){
         _,CAddr,err := Conn.ReadFromUDP(buffer)
         CheckError(err)
         fmt.Println("Connection from : ",CAddr)
-        new_job := Job{
+        new_job := Job{ //Creating new Job
             buffer : buffer,
             Conn : Conn,
             Caddr : CAddr,
         }
         var min_buffer = 0;
         var min_buffer_len = len(Thread_channels[0]);
-        for i:=0;i<int(System_State.FreeThreads-1);i++{
+        for i:=0;i<int(System_State.FreeThreads-1);i++{ //Checking which thread has least JOB
             if(len(Thread_channels[i]) < min_buffer_len){
                 min_buffer_len = len(Thread_channels[i]);
                 min_buffer = i;
@@ -44,7 +44,7 @@ func Serverstart(Conn *net.UDPConn){
 
 func request_handle_thread(job chan Job){
 
-    for{
+    for{ //The thread continuously checks for any job
         new_job := <- job
         packet_buff := new_job.buffer;
         UDPConn := new_job.Conn;
@@ -60,22 +60,26 @@ func request_handle_thread(job chan Job){
 
             req_id := DNSpacketObj.ID; //Used by All DNS System_States to ensure authenticity
             var response = new(dns.Msg);
+           
             if EntryExists(string(it.Name)){
                 response.MsgHdr.Response = true;
-                response.MsgHdr.Rcode = 0; //No error handling :(
+                response.MsgHdr.Rcode = 0;//meaning successfull
                 response.MsgHdr.RecursionDesired = true;
                 l := new(dns.Msg)
                 l.Unpack(packet_buff)
                 response.Question = l.Question;
+                response.Id = req_id;
+                response.MsgHdr.Id = req_id;
                 ReturnWithAnswers(string(it.Name),response)
-
             }else{
                 response = resolve(string(it.Name))
             }
 
 
             if response!=nil{         
+                response.Id = req_id;
                 response.MsgHdr.Id = req_id;
+
                 resbuf,_ := response.Pack()
 
                 //Writing back to client
