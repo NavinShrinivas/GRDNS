@@ -58,22 +58,24 @@ func ReturnWithAnswers(domain string,res *dns.Msg){
     defer c.Close()
     defer pool.Close()
 
-    mod_dom := domain+"."
-    for i:=0;i<len(domain_map[mod_dom]);i++{ //Should not be converted to iterrator based loops
-        record_number := domain_map[mod_dom][i]
-        raw_str,err :=  redis.String(c.Do("HGET",record_number,"reply"))
-        CheckError(err)
-        a,err := dns.NewRR(raw_str)
-        CheckError(err)
-        if a.Header().Rrtype == 5{
-            //Meaning its reply is CNAME record
-            //Need to fetch details for CNAME record now
-            //Need to refactor later : 
-            response_struct := get_fields_whitespace(raw_str);
-            cname_response_domain := response_struct.Reply
-            domain_map[mod_dom] = append(domain_map[mod_dom],domain_map[cname_response_domain]...)
+    mod_dom := []string{domain+"."}
+    for j:=0;j<len(mod_dom);j++{
+        for i:=0;i<len(domain_map[mod_dom[j]]);i++{ //Should not be converted to iterrator based loops
+            record_number := domain_map[mod_dom[j]][i]
+            raw_str,err :=  redis.String(c.Do("HGET",record_number,"reply"))
+            CheckError(err)
+            a,err := dns.NewRR(raw_str)
+            CheckError(err)
+            if a.Header().Rrtype == 5{
+                //Meaning its reply is CNAME record
+                //Need to fetch details for CNAME record now
+                //Need to refactor later : 
+                response_struct := get_fields_whitespace(raw_str);
+                cname_response_domain := response_struct.Reply
+                mod_dom = append(mod_dom,cname_response_domain)
+            }
+            res.Answer = append(res.Answer,a)
         }
-        res.Answer = append(res.Answer,a)
     }
     return
 }
