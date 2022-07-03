@@ -72,7 +72,8 @@ func request_handle_thread(job chan Job){
                 response.MsgHdr.Id = req_id;
                 ReturnWithAnswers(string(it.Name),response)
             }else{
-                response = resolve(string(it.Name))
+                resolve(string(it.Name))
+                ReturnWithAnswers(string(it.Name),response)
             }
 
 
@@ -92,7 +93,7 @@ func request_handle_thread(job chan Job){
 
 
 
-func resolve(Name string) *dns.Msg{
+func resolve(Name string){ //inserts records to map and databse after resolving
     //First check in redis server 
 
     //if not found resolve using 8.8.8.8/1.1.1.1 (for now)
@@ -104,9 +105,8 @@ func resolve(Name string) *dns.Msg{
     if in!=nil{
         //Without this we get nil dereference errors
         response_handlers(in)
-        return in
     }
-    return nil
+    return
 }
 
 
@@ -122,9 +122,7 @@ func response_handlers(res *dns.Msg){
         fmt.Print(res_struct.Ttl," ")
         fmt.Println(res_struct.Reply)
         if res_struct.Typ == "CNAME"{
-            new_record := resolve(res_struct.Reply)
-            res.Answer = append(res.Answer,new_record.Answer...)
-
+            resolve(res_struct.Reply)
         }
 
         //Preparing to flus to db
