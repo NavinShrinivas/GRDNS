@@ -3,8 +3,6 @@ package Modules
 import (
     "fmt"
     "net"
-    "github.com/google/gopacket"
-    "github.com/google/gopacket/layers"
     "github.com/miekg/dns"
 );
 
@@ -19,6 +17,17 @@ func Serverstart(Conn *net.UDPConn){
         System_State.FreeThreads = System_State.FreeThreads - 1;
     }
     fmt.Println("Threads spwaned!")
+    var thread_counter = 0;
+    go UDPConnHandlers(Conn,thread_counter);
+    go UDPConnHandlers(Conn,thread_counter);
+    go UDPConnHandlers(Conn,thread_counter);
+    go UDPConnHandlers(Conn,thread_counter);
+    go UDPConnHandlers(Conn,thread_counter);
+    go UDPConnHandlers(Conn,thread_counter);
+}
+
+
+func UDPConnHandlers(Conn *net.UDPConn,thread_counter int){
     for{
         buffer := make([]byte,10000)
         _,CAddr,err := Conn.ReadFromUDP(buffer)
@@ -29,17 +38,13 @@ func Serverstart(Conn *net.UDPConn){
             Conn : Conn,
             Caddr : CAddr,
         }
-        var min_buffer = 0;
-        var min_buffer_len = len(Thread_channels[0]);
-        for i:=0;i<int(System_State.FreeThreads-1);i++{ //Checking which thread has least JOB
-            if(len(Thread_channels[i]) < min_buffer_len){
-                min_buffer_len = len(Thread_channels[i]);
-                min_buffer = i;
-            }
-        }
-        fmt.Println("Job given to thread",min_buffer)
-        Thread_channels[min_buffer]<-new_job;
+        var min_buffer_mod = System_State.FreeThreads-1;
+
+        fmt.Println("Job given to thread",thread_counter%int(min_buffer_mod))
+        Thread_channels[thread_counter%int(min_buffer_mod)]<-new_job;
+        thread_counter++;
     }
+
 }
 
 func request_handle_thread(job chan Job){
@@ -49,39 +54,22 @@ func request_handle_thread(job chan Job){
         packet_buff := new_job.buffer;
         UDPConn := new_job.Conn;
         UDPCaddr := new_job.Caddr;
-        //Fetching DNS layers and parsing to object, Can be converted to handle with dns package later 
-        packetlayers := gopacket.NewPacket(packet_buff,layers.LayerTypeDNS,gopacket.Default) 
-        DNSlayer := packetlayers.Layer(layers.LayerTypeDNS)
-        DNSpacketObj := DNSlayer.(*layers.DNS)
+        DNSpacketObj := new(dns.Msg);
+        DNSpacketObj.Unpack(packet_buff);
 
-        fmt.Println("Questions Recieved : ")
-        for i,it:=range DNSpacketObj.Questions{
-            fmt.Println("\t Question",i+1,":",string(it.Name))
-
-            req_id := DNSpacketObj.ID; //Used by All DNS System_States to ensure authenticity
-            var response = new(dns.Msg);
-           
+        for _,it:=range DNSpacketObj.Question{
+            DNSpacketObj.MsgHdr.Response = true;
+            DNSpacketObj.MsgHdr.Rcode = 0;//meaning successfull
             if EntryExists(string(it.Name)){
-                response.MsgHdr.Response = true;
-                response.MsgHdr.Rcode = 0;//meaning successfull
-                response.MsgHdr.RecursionDesired = true;
-                l := new(dns.Msg)
-                l.Unpack(packet_buff)
-                response.Question = l.Question;
-                response.Id = req_id;
-                response.MsgHdr.Id = req_id;
-                ReturnWithAnswers(string(it.Name),response)
+                ReturnWithAnswers(string(it.Name),DNSpacketObj)
             }else{
-                resolve(string(it.Name))
-                ReturnWithAnswers(string(it.Name),response)
+                resolve(DNSpacketObj,string(it.Name))
             }
 
+            if DNSpacketObj!=nil{         
+               
 
-            if response!=nil{         
-                response.Id = req_id;
-                response.MsgHdr.Id = req_id;
-
-                resbuf,_ := response.Pack()
+                resbuf,_ := DNSpacketObj.Pack()
 
                 //Writing back to client
                 _, err := UDPConn.WriteToUDP(resbuf, UDPCaddr)
@@ -93,36 +81,33 @@ func request_handle_thread(job chan Job){
 
 
 
-func resolve(Name string){ //inserts records to map and databse after resolving
+func resolve(DNSpacketObj *dns.Msg,Name string){ //inserts records to map and databse
     //First check in redis server 
 
     //if not found resolve using 8.8.8.8/1.1.1.1 (for now)
     //Root server : 198.41.0.4
     msg := new(dns.Msg)
     msg.SetQuestion(dns.Fqdn(Name),dns.TypeA) //FQDN : fully qualified Domain name
-    in, err := dns.Exchange(msg, "1.1.1.1:53")
+    in, err := dns.Exchange(msg, "8.8.8.8:53")
     CheckError(err)
     if in!=nil{
         //Without this we get nil dereference errors
-        response_handlers(in)
+        response_handlers(DNSpacketObj,in)
     }
     return
 }
 
 
-func response_handlers(res *dns.Msg){
+func response_handlers(DNSpacketObj *dns.Msg ,res *dns.Msg){
 
     //Fetching answer records [MOST IMP] : 
     for i:=0;i<len(res.Answer);i++{
         it := res.Answer[i]
+        DNSpacketObj.Answer = append(DNSpacketObj.Answer,res.Answer[i])
         res_struct := get_fields_whitespace(it.String())
-        fmt.Print(res_struct.Name," ")
-        fmt.Print(res_struct.Typ," ")
-        fmt.Print(res_struct.Class," ")
-        fmt.Print(res_struct.Ttl," ")
-        fmt.Println(res_struct.Reply)
+        
         if res_struct.Typ == "CNAME"{
-            resolve(res_struct.Reply)
+            resolve(DNSpacketObj, res_struct.Reply)
         }
 
         //Preparing to flus to db
@@ -137,4 +122,10 @@ func response_handlers(res *dns.Msg){
             fmt.Println("Something wrong with redis server!")
         }
     }
+    for i:=0;i<len(res.Ns);i++{
+       //Cant handle caching Auth section as of now 
+        DNSpacketObj.Ns = append(DNSpacketObj.Ns,res.Ns[i])
+
+    }
+    return 
 }

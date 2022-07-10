@@ -48,6 +48,13 @@ type Job struct{ //Stuct thats stored in the buffer
     Caddr *net.UDPAddr
 }
 
+type InsertRecordJob struct{
+    Name string
+    Record_number int64 
+}
+var UpdateMapBuffer chan InsertRecordJob
+var RecordMapRWLock = sync.RWMutex{}
+
 var Thread_channels [1024]chan Job //Cant have more than 1024 threads in the thread pool
 
 func CheckError(err error){
