@@ -12,18 +12,16 @@ func Serverstart(Conn *net.UDPConn){
     //The way this fucntion is designed saves time and resources spawing thread everytime!.
     //Although it does lead to some dropped packets but thats and extreme
 
+    var thread_counter = 0;
+    for i:=0 ;i<int( System_State.FreeThreads/16 );i++{
+        go UDPConnHandlers(Conn,thread_counter);
+    }
     for i:=0 ;i<int( System_State.FreeThreads );i++{
         go request_handle_thread(Thread_channels[i]) //spawnning threads
         System_State.FreeThreads = System_State.FreeThreads - 1;
     }
+   
     fmt.Println("Threads spwaned!")
-    var thread_counter = 0;
-    go UDPConnHandlers(Conn,thread_counter);
-    go UDPConnHandlers(Conn,thread_counter);
-    go UDPConnHandlers(Conn,thread_counter);
-    go UDPConnHandlers(Conn,thread_counter);
-    go UDPConnHandlers(Conn,thread_counter);
-    go UDPConnHandlers(Conn,thread_counter);
 }
 
 
@@ -67,7 +65,7 @@ func request_handle_thread(job chan Job){
             }
 
             if DNSpacketObj!=nil{         
-               
+
 
                 resbuf,_ := DNSpacketObj.Pack()
 
@@ -105,7 +103,7 @@ func response_handlers(DNSpacketObj *dns.Msg ,res *dns.Msg){
         it := res.Answer[i]
         DNSpacketObj.Answer = append(DNSpacketObj.Answer,res.Answer[i])
         res_struct := get_fields_whitespace(it.String())
-        
+
         if res_struct.Typ == "CNAME"{
             resolve(DNSpacketObj, res_struct.Reply)
         }
@@ -123,7 +121,7 @@ func response_handlers(DNSpacketObj *dns.Msg ,res *dns.Msg){
         }
     }
     for i:=0;i<len(res.Ns);i++{
-       //Cant handle caching Auth section as of now 
+        //Cant handle caching Auth section as of now 
         DNSpacketObj.Ns = append(DNSpacketObj.Ns,res.Ns[i])
 
     }
