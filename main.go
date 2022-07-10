@@ -35,11 +35,14 @@ func main(){
         fmt.Println("Listening to port 53");
     }
 
+    //Initializing
     //These are thre buffered channels that the thread threads that are part of the thread pool 
     //Keep checking for any jobs
+
     for i:=0;i<int(Modules.System_State.FreeThreads);i++{
         Modules.Thread_channels[i] = make(chan Modules.Job,10000); //No more than 10000 jobs can be buffered at a time
     } 
+    Modules.UpdateMapBuffer = make(chan Modules.InsertRecordJob,1000000) //No more than 1000000 record inserts buffered at one time
 
     Modules.Work_Group.Add(1)//making the program wait for other threads, no logic here. hard coded.
     Modules.Serverstart(Conn) //First we spawnt the load balancer thread.
