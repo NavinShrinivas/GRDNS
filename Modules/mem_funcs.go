@@ -77,7 +77,10 @@ func ReturnWithAnswers(domain string,res *dns.Msg){
                 response_struct := get_fields_whitespace(raw_str);
                 cname_response_domain := response_struct.Reply 
                 //Something is going wrong, falling back to know server 
-                resolve(res,domain);
+                if len(FetchMapFunction(cname_response_domain)) == 0{
+                    resolve(res,cname_response_domain)
+                    return
+                }
                 mod_dom = append(mod_dom,cname_response_domain)
             }
             res.Answer = append(res.Answer,a)

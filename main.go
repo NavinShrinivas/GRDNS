@@ -22,8 +22,8 @@ func main(){
         return
     }
 
-    if Modules.System_State.FreeThreads <= 2 {
-        fmt.Println("Atleast 3 threads are needed to be spawned to get this program working.")
+    if Modules.System_State.FreeThreads <= 15 {
+        fmt.Println("Atleast 16 soft threads are needed to be spawned to get this program working.")
         return
     }
 
