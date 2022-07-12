@@ -56,6 +56,7 @@ var UpdateMapBuffer chan InsertRecordJob
 var RecordMapRWLock = sync.RWMutex{}
 
 var Thread_channels [1024]chan Job //Cant have more than 1024 threads in the thread pool
+var LoadBalancerChannel chan Job //Buffer from UDP Conn to load balancer 
 
 func CheckError(err error){
     if err!=nil{

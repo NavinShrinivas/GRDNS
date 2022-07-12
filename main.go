@@ -40,9 +40,10 @@ func main(){
     //Keep checking for any jobs
 
     for i:=0;i<int(Modules.System_State.FreeThreads);i++{
-        Modules.Thread_channels[i] = make(chan Modules.Job,10000); //No more than 10000 jobs can be buffered at a time
+        Modules.Thread_channels[i] = make(chan Modules.Job,7000); //No more than 7000 jobs can be buffered at a time
     } 
     Modules.UpdateMapBuffer = make(chan Modules.InsertRecordJob,1000000) //No more than 1000000 record inserts buffered at one time
+    Modules.LoadBalancerChannel = make(chan Modules.Job, 1000000);
 
     Modules.Work_Group.Add(1)//making the program wait for other threads, no logic here. hard coded.
     Modules.Serverstart(Conn) //First we spawnt the load balancer thread.
