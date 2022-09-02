@@ -20,7 +20,6 @@ func Serverstart(Conn *net.UDPConn){
         System_State.FreeThreads = System_State.FreeThreads - 1;
     }
     go LoadBalancer(LoadBalancerChannel); 
-    fmt.Println("Threads spwaned!")
 }
 
 
@@ -29,7 +28,6 @@ func UDPConnHandlers(Conn *net.UDPConn){
         buffer := make([]byte,10000)
         _,CAddr,err := Conn.ReadFromUDP(buffer)
         CheckError(err)
-        fmt.Println("Connection from : ",CAddr)
         new_job := Job{ //Creating new Job
             buffer : buffer,
             Conn : Conn,
@@ -42,12 +40,10 @@ func UDPConnHandlers(Conn *net.UDPConn){
 
 
 func LoadBalancer(LoadBalancerChannel chan Job){
-    var min_buffer_mod = System_State.FreeThreads-1;
+    var min_buffer_mod = System_State.FreeThreads;
     thread_counter := 0;
     for{
         new_job := <- LoadBalancerChannel
-
-        fmt.Println("Job given to thread",thread_counter%int(min_buffer_mod))
         Thread_channels[thread_counter%int(min_buffer_mod)]<-new_job;
         thread_counter++;
 
@@ -86,7 +82,10 @@ func request_handle_thread(job chan Job){
     }
 }
 
-
+func error_ret_fail(DNSpacketObj *dns.Msg){
+    DNSpacketObj.MsgHdr.Rcode = 2 //Meaning failed on server side...only error check as for now
+    return
+}
 
 func resolve(DNSpacketObj *dns.Msg,Name string){ //inserts records to map and databse
     //First check in redis server 
@@ -96,7 +95,10 @@ func resolve(DNSpacketObj *dns.Msg,Name string){ //inserts records to map and da
     msg := new(dns.Msg)
     msg.SetQuestion(dns.Fqdn(Name),dns.TypeA) //FQDN : fully qualified Domain name
     in, err := dns.Exchange(msg, "8.8.8.8:53")
-    CheckError(err)
+    if err!=nil{
+        error_ret_fail(DNSpacketObj)
+        return
+    }
     if in!=nil{
         //Without this we get nil dereference errors
         response_handlers(DNSpacketObj,in)

@@ -5,29 +5,26 @@ import (
     "github.com/miekg/dns"
     "github.com/gomodule/redigo/redis"
 )
-func newPool() *redis.Pool {
-    return &redis.Pool{
-        // Maximum number of idle connections in the pool.
-        MaxIdle: 50,
-        // max number of connections
-        MaxActive: 120000,
-        // Dial is an application supplied function for creating and
-        // configuring a connection.
-        Dial: func() (redis.Conn, error) {
-            c, err := redis.Dial("tcp", ":6379")
-            if err != nil {
-                panic(err.Error())
-            }
-            return c, err
-        },
-    }
-}
+
+
+var pool = &redis.Pool{
+    MaxIdle: 80,
+    MaxActive: 12000, // max number of connections
+    Dial: func() (redis.Conn, error) {
+        c, err := redis.Dial("tcp", ":6379")
+        if err != nil {
+            panic(err.Error())
+        }
+        return c, err
+    },
+} 
+
 func FlushToDB(Record ResponseStruct) bool {
 
-    var pool = newPool()
-    var c = pool.Get()
+
+
+    c := pool.Get()
     defer c.Close()
-    defer pool.Close()
 
     temp_arr := FetchMapFunction(Record.Name);
     temp_arr = append(temp_arr,Record_number)
@@ -56,10 +53,8 @@ func EntryExists(domain string)bool{
 func ReturnWithAnswers(domain string,res *dns.Msg){
 
     fmt.Println("Resolving from Cache!",domain)
-    var pool = newPool()
     var c = pool.Get()
     defer c.Close()
-    defer pool.Close()
     mod_dom := []string{domain}
     for j:=0;j<len(mod_dom);j++{
         map_value_len := 1;
