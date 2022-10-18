@@ -1,7 +1,10 @@
 # GRDNS : The easy to setup DNS caching server 
 
-GRDNS aims to be the program to run on yout DNS server when one needs fast resolve times. Consider major ISP who have their own DNS servers (Which may sometimes be used for tracking, but thats not the point of this project) who want to server throusands of users simultaneously. GDRNS aims to make that easy by embracing the following : 
+GRDNS aims to be the program to run on yout DNS server when one needs fast resolve times. Consider major ISP who have their own DNS servers (Which may sometimes be used for tracking, but thats not the point of this project) who want to server throusands of users simultaneously. GRDNS does this by using in memeory key value pairs and extreme concurrency.
 
+## Basic Info
+
+- Built using GoLang and redis.
 - Clean and effective code 
 - Hash based database storing records (redis)
 - Multi threading done right
@@ -9,8 +12,30 @@ GRDNS aims to be the program to run on yout DNS server when one needs fast resol
 - Using in memory data as much as possible when also maintaining stability
 - using newer languages such as GO lang
 
-> Note : The project as of yet has not reached a stable level and is heavily under development. If you wish to be part of this project contact me : [here](mailto:karupal2002@gmail.com)
+### Building locally : 
 
+> Note : this project is built for the linux system, compatibility with windows is not confirnmed(This can be an issue, propose if you wish to).
+To run this porject, you need to have golang and redis installed. After getting those two 
+```bash
+$ ./run.sh
+```
+Should compile and start the DNS server.
+
+### Testing locally :
+
+- A single resolve test can be done like so : 
+```bash
+$ dig @0.0.0.0 google.com
+```
+- A performance test can be done like so [needs dnsperf installed before hand]:
+```
+./test.sh --10mtest
+```
+
+### Maintainers in charge : 
+
+[Navin Shrinivas](https://github.com/NavinShrinivas)
+[Mukund Deepak](https://github.com/mukunddeepak)
 
 ## Performance : 
 
