@@ -27,6 +27,7 @@ Should compile and start the DNS server.
 ```bash
 $ dig @0.0.0.0 google.com
 ```
+It's best you run the above command twice. This is cus the first resolve doesn't hit the cache, second will.
 - A performance test can be done like so [needs dnsperf installed before hand]:
 ```
 ./test.sh --10mtest
