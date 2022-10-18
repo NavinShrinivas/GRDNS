@@ -21,8 +21,6 @@ var pool = &redis.Pool{
 
 func FlushToDB(Record ResponseStruct) bool {
 
-
-
     c := pool.Get()
     defer c.Close()
 
@@ -52,10 +50,12 @@ func EntryExists(domain string)bool{
 
 func ReturnWithAnswers(domain string,res *dns.Msg){
 
+    //Most messiest function in entire project, If you get it and want to refactor, propose issue!
+
     fmt.Println("Resolving from Cache!",domain)
     var c = pool.Get()
     defer c.Close()
-    mod_dom := []string{domain}
+    mod_dom := []string{domain} //To append any Cname domain that a given domain have point to.
     for j:=0;j<len(mod_dom);j++{
         map_value_len := 1;
         for i:=0;i<map_value_len;i++{ //Should not be converted to iterrator based loops
@@ -73,6 +73,7 @@ func ReturnWithAnswers(domain string,res *dns.Msg){
                 cname_response_domain := response_struct.Reply 
                 //Something is going wrong, falling back to know server 
                 if len(FetchMapFunction(cname_response_domain)) == 0{
+                    //Meaning no records for Cname is found
                     resolve(res,cname_response_domain)
                     return
                 }

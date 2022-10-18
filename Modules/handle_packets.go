@@ -115,11 +115,11 @@ func response_handlers(DNSpacketObj *dns.Msg ,res *dns.Msg){
         DNSpacketObj.Answer = append(DNSpacketObj.Answer,res.Answer[i])
         res_struct := get_fields_whitespace(it.String())
 
-        if res_struct.Typ == "CNAME"{
+        if res_struct.Typ == "CNAME"{ //If canonical name, we have to resolve that and cache that too!
             resolve(DNSpacketObj, res_struct.Reply)
         }
 
-        //Preparing to flus to db
+        //Preparing to flush to db
         res_struct.Rawname = it.Header().Name
         res_struct.Rawclass = it.Header().Class
         res_struct.Rawrdlength = it.Header().Rdlength
@@ -134,6 +134,7 @@ func response_handlers(DNSpacketObj *dns.Msg ,res *dns.Msg){
     for i:=0;i<len(res.Ns);i++{
         //Cant handle caching Auth section as of now 
         DNSpacketObj.Ns = append(DNSpacketObj.Ns,res.Ns[i])
+        //Simply appending all NameServer responses to response, no caching
 
     }
     return 
