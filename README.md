@@ -14,8 +14,8 @@ GRDNS aims to be the program to run on yout DNS server when one needs fast resol
 
 ### Building locally : 
 
-> Note : this project is built for the linux system, compatibility with windows is not confirnmed(This can be an issue, propose if you wish to).
-To run this porject, you need to have golang and redis installed. After getting those two 
+> Note : this project is built for the linux system, compatibility with windows is not confirnmed (This can be an issue, propose if you wish to).
+To run this project, you need to have golang and redis installed. After getting those two 
 ```bash
 $ ./run.sh
 ```

@@ -1,43 +1,49 @@
 echo "Needed Dependencies : redis "
 echo "Which distro are u running me on?"
-echo "1.Debian base distros [Ubunut, pop, ...]"
-echo "2.Arch base distro [EOS, Manjaro, ..]"
+echo "1. Debian base distros [Ubunut, pop, ...]"
+echo "2. Arch base distro [EOS, Manjaro, ..]"
+echo "3. MacOS (Darwin)"
 echo -n "Enter option :"
 read option
 
-if [ $option -ne "1" ];then
-    sudo systemctl start redis
-   if [ $? -ne "0" ];then
+notify_redis_absence() {
+    if [ $? -ne 0 ]; then
         echo "oh oh, something went wrong, possible causes : "
         echo "No instance of redis is installed in this system"
-        exit
+        exit 1
     fi
-    redis-cli FLUSHALL
-    go build .
-    if [ $? -ne "0" ];then
-        echo "oh oh, something went wrong, possible causes : "
-        echo "No go toochains installed"
-        exit
+}
+
+case $option in
+1)
+    sudo systemctl start redis &>/dev/null
+    notify_redis_absence
+
+    ;;
+2)
+    sudo systemctl start redis-serve &>/dev/null
+    notify_redis_absence
+    ;;
+3)
+    brew --version &>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "Requires brew to start redis"
+        echo "Please make sure you have brew installed"
+        echo "Then run 'brew install redis'"
+        exit 1
     fi
-    chmod +x GRDNS
-    sudo ./GRDNS
-else
-    sudo systemctl start redis-server
-    if [ $? -ne "0" ];then
-        echo "oh oh, something went wrong, possible causes : "
-        echo "No instance of redis is installed in this system"
-        exit
-    fi
-    redis-cli FLUSHALL
-    go build .
-    if [ $? -ne "0" ];then
-        echo "oh oh, something went wrong, possible causes : "
-        echo "No go toochains installed"
-        exit
-    fi
-    chmod +x GRDNS
-    sudo ./GRDNS
+    brew services run redis &>/dev/null
+    notify_redis_absence
+    ;;
+esac
+
+redis-cli FLUSHALL
+
+go build .
+if [ $? -ne "0" ]; then
+    echo "oh oh, something went wrong, possible causes : "
+    echo "No go toochains installed"
+    exit 1
 fi
 
-
-
+sudo ./GRDNS
