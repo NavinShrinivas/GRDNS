@@ -6,10 +6,12 @@ echo "3. MacOS (Darwin)"
 echo -n "Enter option :"
 read option
 
-notify_redis_absence() {
+notify_problems() {
     if [ $? -ne 0 ]; then
         echo "oh oh, something went wrong, possible causes : "
-        echo "No instance of redis is installed in this system"
+        for cause in "$@"; do
+            echo $cause
+        done
         exit 1
     fi
 }
@@ -17,33 +19,21 @@ notify_redis_absence() {
 case $option in
 1)
     sudo systemctl start redis &>/dev/null
-    notify_redis_absence
-
     ;;
 2)
     sudo systemctl start redis-serve &>/dev/null
-    notify_redis_absence
     ;;
 3)
     brew --version &>/dev/null
-    if [ $? -ne 0 ]; then
-        echo "Requires brew to start redis"
-        echo "Please make sure you have brew installed"
-        echo "Then run 'brew install redis'"
-        exit 1
-    fi
+    notify_problems "brew is not installed"
     brew services run redis &>/dev/null
-    notify_redis_absence
+    notify_problems "redis is not installed"
     ;;
 esac
 
 redis-cli FLUSHALL
 
 go build .
-if [ $? -ne "0" ]; then
-    echo "oh oh, something went wrong, possible causes : "
-    echo "No go toochains installed"
-    exit 1
-fi
+notify_problems "No go toochains installed"
 
-sudo ./GRDNS
+./GRDNS

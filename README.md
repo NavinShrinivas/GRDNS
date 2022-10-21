@@ -27,7 +27,7 @@ Should compile and start the DNS server.
 ```bash
 $ dig @0.0.0.0 google.com
 ```
-- A performance test can be done like so [needs dnsperf installed before hand]:
+- A performance test after starting the DNS server can be started like so (needs dnsperf installed before hand):
 ```
 ./test.sh --10mtest
 ```
