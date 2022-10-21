@@ -15,7 +15,10 @@ GRDNS aims to be the program to run on yout DNS server when one needs fast resol
 ### Building locally : 
 
 > Note : this project is built for the linux system, compatibility with windows is not confirnmed(This can be an issue, propose if you wish to).
-To run this porject, you need to have golang and redis installed. After getting those two 
+To run this project, you need to have golang and redis installed. 
+MacOS users can run `brew install go redis` to install go and redis
+
+After getting the dependencies, you can run:
 ```bash
 $ ./run.sh
 ```
@@ -27,8 +30,8 @@ Should compile and start the DNS server.
 ```bash
 $ dig @0.0.0.0 google.com
 ```
-It's best you run the above command twice. This is cus the first resolve doesn't hit the cache, second will.
-- A performance test can be done like so [needs dnsperf installed before hand]:
+It's best you run the above command twice. This is because the first resolve doesn't hit the cache, second will.
+- A performance test can be done like so after starting the DNS server (needs dnsperf installed before hand):
 ```
 ./test.sh --10mtest
 ```
