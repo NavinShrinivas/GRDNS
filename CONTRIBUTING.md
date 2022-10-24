@@ -1,6 +1,6 @@
 # Contributors Help 
 
-## File stsructure
+## File structure
 This file hold the environment variables handling and passes off a UDP connection to Modules/handle_packets.go. 
 This file spawns a bunch of UDPConn handlers and a bunch of LoadBalancers. Communication between load balancers and request_handle_thread is a whole lot of channels (each thread has its own channel).
 
