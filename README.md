@@ -1,6 +1,6 @@
 # GRDNS : The easy to setup DNS caching server 
 
-GRDNS aims to be the program to run on yout DNS server when one needs fast resolve times. Consider major ISP who have their own DNS servers (Which may sometimes be used for tracking, but thats not the point of this project) who want to server throusands of users simultaneously. GRDNS does this by using in memeory key value pairs and extreme concurrency.
+In memory dns caching server.
 
 ## Basic Info
 
