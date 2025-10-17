@@ -10,7 +10,7 @@ In memory dns caching server.
 - Multi threading done right
 - Using low overhead libraries wherever possible 
 - Using in memory data as much as possible when also maintaining stability
-- using newer languages such as GO lang
+
 
 ### Building locally : 
 
