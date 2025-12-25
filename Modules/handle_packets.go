@@ -1,9 +1,11 @@
 package Modules
+package main 
 
 import (
     "fmt"
     "net"
     "github.com/miekg/dns"
+    "hash/fnv"
 );
 
 func Serverstart(Conn *net.UDPConn){
@@ -38,13 +40,20 @@ func UDPConnHandlers(Conn *net.UDPConn){
 
 }
 
+func hash(s string) unit32 
+{
+    h:=fnv.New32a()
+    h.write([]byte(s))
+    return h.Sum32()
+}
+
 
 func LoadBalancer(LoadBalancerChannel chan Job){
     var min_buffer_mod = System_State.FreeThreads;
     thread_counter := 0;
     for{
         new_job := <- LoadBalancerChannel
-        Thread_channels[thread_counter%int(min_buffer_mod)]<-new_job;
+        Thread_channels[thread_counter%int(hash(min_buffer_mod))]<-new_job;
         thread_counter++;
 
     }
